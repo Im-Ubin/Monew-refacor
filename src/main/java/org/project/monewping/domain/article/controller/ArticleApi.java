@@ -38,7 +38,7 @@ public interface ArticleApi {
                   "viewedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                   "createdAt": "2025-08-04T11:41:07.755Z",
                   "articleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                  "source": "NAVER",
+                  "source": "Chosun",
                   "sourceUrl": "string",
                   "articleTitle": "string",
                   "articlePublishedDate": "2025-08-04T11:41:07.755Z",
@@ -70,7 +70,7 @@ public interface ArticleApi {
                   "content": [
                     {
                       "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                      "source": "NAVER",
+                      "source": "HanKyung",
                       "sourceUrl": "string",
                       "title": "string",
                       "publishDate": "2025-08-04T11:41:07.770Z",
@@ -118,7 +118,9 @@ public interface ArticleApi {
                 array = @ArraySchema(schema = @Schema(implementation = String.class)),
                 examples = @ExampleObject(value = """
                 [
-                  "NAVER"
+                  "Chosun",
+                  "HanKyung",
+                  "YonHap"
                 ]
                 """))),
         @ApiResponse(responseCode = "500", description = "서버 내부 오류",
