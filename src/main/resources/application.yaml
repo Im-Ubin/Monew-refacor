@@ -76,3 +76,8 @@ aws:
       bucket-name: ${AWS_S3_LOGS_BUCKET:monewping-logs-storage} # 로그 파일을 넣는 버킷
       prefix: ${AWS_S3_LOGS_PREFIX:application-logs}
       enabled: ${AWS_S3_ENABLED:false} # 현재 aws 연동하지 않았기 때문에 false, 이후 연동 시 true 변경
+
+# Swagger
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

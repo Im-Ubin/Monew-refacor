@@ -3,7 +3,6 @@ package org.project.monewping.domain.article.controller;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/articles")
 @RequiredArgsConstructor
 @Slf4j
-public class ArticleController {
+public class ArticleController implements ArticleApi {
 
     private final ArticleViewsService articleViewsService;
     private final ArticlesService articlesService;
@@ -52,6 +51,7 @@ public class ArticleController {
      * @param viewedBy 요청 헤더 "Monew-Request-User-ID"에 포함된 사용자 ID
      * @return 등록된 조회 기록 정보 (ArticleViewDto)
      */
+    @Override
     @PostMapping("/{articleId}/article-views")
     public ResponseEntity<ArticleViewDto> registerArticleView(
         @PathVariable UUID articleId,
@@ -90,6 +90,7 @@ public class ArticleController {
      * @param userId  요청자 ID 헤더 "Monew-Request-User-ID" (필수)
      * @return 커서 기반 페이지네이션 결과
      */
+    @Override
     @GetMapping
     public CursorPageResponse<ArticleDto> getArticles(
         @RequestParam(required = false) String keyword,
@@ -97,11 +98,11 @@ public class ArticleController {
         @RequestParam(required = false) List<String> sourceIn,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime publishDateFrom,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime publishDateTo,
-        @RequestParam @NotBlank @Pattern(regexp = "publishDate|commentCount|viewCount", message = "정렬 조건은 날짜, 댓글 수, 조회 수 중 하나여야 합니다.") String orderBy,
-        @RequestParam @NotBlank @Pattern(regexp = "ASC|DESC", flags = Pattern.Flag.CASE_INSENSITIVE, message = "정렬 방향은 ASC 또는 DESC이어야 합니다.") String direction,
+        @RequestParam String orderBy,
+        @RequestParam String direction,
         @RequestParam(required = false) String cursor,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
-        @RequestParam @Min(1) int limit,
+        @RequestParam int limit,
         @RequestHeader(name = "Monew-Request-User-ID") UUID userId
     ) {
         log.info("뉴스 기사 목록 조회 요청 : 키워드 = {}, 관심사 ID = {}, 뉴스 기사 출처 = {}, 기사 발행일 시작 범위 = {}, 기사 발행일 종료 범위 = {},"
@@ -130,6 +131,7 @@ public class ArticleController {
      *
      * @return 출처 문자열 목록
      */
+    @Override
     @GetMapping("/sources")
     public ResponseEntity<List<String>> getAllSources() {
         List<String> sources = articlesService.getAllSources();
@@ -145,18 +147,16 @@ public class ArticleController {
      * <p>범위 내 날짜별로 백업된 JSON 파일을 S3에서 로드하고,
      * DB에 존재하지 않는 기사만 필터링하여 복구합니다.
      *
-     * @param fromRaw 복구 시작 날짜/시간 문자열 (예: {@code 2025-07-25T00:00:00})
-     * @param toRaw   복구 종료 날짜/시간 문자열 (예: {@code 2025-07-27T23:59:59})
+     * @param from 복구 시작 날짜/시간 문자열 (예: {@code 2025-07-25T00:00:00})
+     * @param to   복구 종료 날짜/시간 문자열 (예: {@code 2025-07-27T23:59:59})
      * @return 날짜별 복구 결과 리스트. 각 요소는 복구된 날짜, 기사 ID 목록, 복구 건수를 포함.
      *         파라미터가 잘못되었거나 순서가 잘못되면 400 Bad Request 반환.
      */
+    @Override
     @GetMapping("/restore")
     public ResponseEntity<List<ArticleRestoreResultDto>> restoreArticles(
-        @RequestParam("from") String fromRaw,
-        @RequestParam("to") String toRaw) {
-
-        LocalDate from = parseToLocalDate(fromRaw);
-        LocalDate to = parseToLocalDate(toRaw);
+        @RequestParam("from") LocalDateTime from,
+        @RequestParam("to") LocalDateTime to) {
 
         if (from == null || to == null || from.isAfter(to)) {
             return ResponseEntity.badRequest().build();
@@ -174,6 +174,7 @@ public class ArticleController {
      * @return HTTP 204 (No Content) 논리 삭제 성공 시
      * @throws ArticleNotFoundException 뉴스 기사 없을 경우 404 반환
      */
+    @Override
     @DeleteMapping("/{articleId}")
     public ResponseEntity<Void> softDelete(@PathVariable UUID articleId) {
         log.info("뉴스 기사 논리 삭제 요청 : articleId = {}", articleId);
@@ -188,37 +189,12 @@ public class ArticleController {
      * @return HTTP 204 (No Content) 물리 삭제 성공 시
      * @throws ArticleNotFoundException 뉴스 기사 없을 경우 404 반환
      */
+    @Override
     @DeleteMapping("/{articleId}/hard")
     public ResponseEntity<Void> hardDelete(@PathVariable UUID articleId) {
         log.info("뉴스 기사 물리 삭제 요청 : articleId = {}", articleId);
         articlesService.hardDelete(articleId);
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * ISO 8601 형식의 문자열을 LocalDate로 변환합니다.
-     *
-     * <p>지원되는 형식:
-     * <ul>
-     *     <li>{@code yyyy-MM-dd} (예: {@code 2025-07-25})</li>
-     *     <li>{@code yyyy-MM-dd'T'HH:mm:ss} (예: {@code 2025-07-25T00:00:00})</li>
-     * </ul>
-     *
-     * @param rawDate 변환할 날짜 문자열
-     * @return 파싱된 LocalDate, 실패 시 {@code null}
-     */
-    private LocalDate parseToLocalDate(String rawDate) {
-        try {
-            // 입력이 ISO-8601 date-time일 경우 LocalDateTime으로 파싱 후 LocalDate만 추출
-            return LocalDateTime.parse(rawDate).toLocalDate();
-        } catch (Exception e) {
-            // fallback: date-only 형식도 허용
-            try {
-                return LocalDate.parse(rawDate);
-            } catch (Exception ignored) {
-                return null;
-            }
-        }
     }
 
 }
