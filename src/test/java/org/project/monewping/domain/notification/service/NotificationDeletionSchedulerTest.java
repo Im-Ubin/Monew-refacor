@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,8 +50,10 @@ public class NotificationDeletionSchedulerTest {
         ArgumentCaptor<JobParameters> paramsCaptor = ArgumentCaptor.forClass(JobParameters.class);
         verify(jobLauncher).run(eq(deleteOldNotificationsJob), paramsCaptor.capture());
 
-        assertThat(paramsCaptor.getValue().getParameters())
-            .containsKey("run.id");
+        JobParameters captured = paramsCaptor.getValue();
+
+        assertThat(captured.getParameters()).containsKey("date");
+        assertThat(captured.getString("date")).isEqualTo(LocalDate.now().toString());
     }
 
     @Test

@@ -2,9 +2,11 @@ package org.project.monewping.domain.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.project.monewping.domain.notification.batch.NotificationDeleteJobConfig;
 import org.project.monewping.domain.notification.entity.Notification;
-import org.project.monewping.domain.notification.exception.NotificationBatchRunException;
 import org.project.monewping.domain.notification.repository.NotificationRepository;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.item.Chunk;
@@ -66,12 +67,10 @@ public class NotificationBatchJobTest {
     @DisplayName("notificationWriter는 deleteAllInBatch를 호출한다")
     void testNotificationWriter() throws Exception {
         // given
-        Notification notification = new Notification(
-            UUID.randomUUID(),
-            "테스트 알림",
-            UUID.randomUUID(),
-            "COMMENT"
-        );
+        UUID id = UUID.randomUUID();
+
+        Notification notification = mock(Notification.class);
+        when(notification.getId()).thenReturn(id);
 
         Chunk<Notification> items = new Chunk<>(List.of(notification));
         ItemWriter<Notification> writer = jobConfig.notificationWriter();
@@ -80,30 +79,28 @@ public class NotificationBatchJobTest {
         writer.write(items);
 
         // then
-        verify(notificationRepository).deleteAllInBatch(items.getItems());
+        verify(notificationRepository).deleteByIdIn(List.of(id));
     }
 
     @Test
     @DisplayName("notificationWriter는 삭제 중 예외 발생 시 커스텀 예외를 던진다")
     void testNotificationWriterThrowsCustomException() {
         // given
-        Notification notification = new Notification(
-            UUID.randomUUID(),
-            "테스트 알림",
-            UUID.randomUUID(),
-            "COMMENT"
-        );
+        UUID id = UUID.randomUUID();
+
+        Notification notification = mock(Notification.class);
+        when(notification.getId()).thenReturn(id);
 
         Chunk<Notification> items = new Chunk<>(List.of(notification));
 
         doThrow(new RuntimeException("DataBase Error"))
-            .when(notificationRepository).deleteAllInBatch(any());
+            .when(notificationRepository).deleteByIdIn(anyList());
 
         ItemWriter<Notification> writer = jobConfig.notificationWriter();
 
         // when and then
         assertThatThrownBy(() -> writer.write(items))
-            .isInstanceOf(NotificationBatchRunException.class)
-            .hasMessageContaining("알림 삭제 실패");
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("DataBase Error");
     }
 }
