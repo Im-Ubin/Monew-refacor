@@ -4,10 +4,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.project.monewping.domain.notification.entity.Notification;
-import org.project.monewping.domain.notification.exception.NotificationBatchRunException;
 import org.project.monewping.domain.notification.repository.NotificationRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -31,11 +31,13 @@ public class NotificationDeleteJobConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final NotificationRepository notificationRepository;
+    private final NotificationJobExecutionListener jobExecutionListener;
 
     @Bean(name = "배치 작업 정의")
     public Job deleteOldNotificationsJob() {
         return new JobBuilder("deleteOldNotificationsJob", jobRepository)
             .start(deleteOldNotificationsStep())
+            .listener(jobExecutionListener)
             .build();
     }
 
@@ -46,6 +48,11 @@ public class NotificationDeleteJobConfig {
             .reader(notificationReader())
             .processor(loggingProcessor())
             .writer(notificationWriter())
+            .faultTolerant()
+            .retry(Exception.class)
+            .retryLimit(3)
+            .skip(Exception.class)
+            .skipLimit(10)
             .build();
     }
 
@@ -74,15 +81,12 @@ public class NotificationDeleteJobConfig {
     @Bean(name = "알림 삭제")
     public ItemWriter<Notification> notificationWriter() {
         return items -> {
-            try {
-                List<Notification> notificationsForDelete = items.getItems().stream()
-                    .map(n -> (Notification) n)
-                    .toList();
-                notificationRepository.deleteAllInBatch(notificationsForDelete);
-            } catch (Exception e) {
-                log.error("알림 삭제 중 예외 발생", e);
-                throw new NotificationBatchRunException("알림 삭제 실패", e);
-            }
+            List<UUID> ids = items.getItems().stream()
+                .map(Notification::getId)
+                .toList();
+
+            notificationRepository.deleteByIdIn(ids);
+            log.info("알림 {}건 삭제 완료", ids.size());
         };
     }
 }

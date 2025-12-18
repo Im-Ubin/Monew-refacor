@@ -121,4 +121,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     );
 
     long countByUserIdAndConfirmedFalse(UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.id IN :ids")
+    void deleteByIdIn(@Param("ids") List<UUID> ids);
 }

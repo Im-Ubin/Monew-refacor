@@ -1,5 +1,6 @@
 package org.project.monewping.domain.notification.batch;
 
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.project.monewping.domain.notification.exception.NotificationBatchRunException;
 import org.springframework.batch.core.Job;
@@ -26,8 +27,11 @@ public class NotificationBatchController {
     @PostMapping("/batch/delete-notifications")
     public void runDeleteJobManually() throws Exception {
         try {
+            LocalDate today = LocalDate.now();
+
             JobParameters jobParameters = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
+                .addString("date", today.toString())
                 .toJobParameters();
 
             jobLauncher.run(deleteOldNotificationsJob, jobParameters);

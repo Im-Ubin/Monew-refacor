@@ -1,6 +1,7 @@
 package org.project.monewping.domain.notification.batch;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.project.monewping.domain.notification.exception.NotificationBatchRunException;
@@ -8,6 +9,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -31,11 +33,15 @@ public class NotificationDeletionScheduler {
         try {
             log.info("알림 삭제 배치 작업 실행 시작 - 시간: {}", Instant.now());
 
+            LocalDate today = LocalDate.now();
+
             JobParameters params = new JobParametersBuilder()
-                .addLong("run.id", System.currentTimeMillis())
+                .addString("date", today.toString())
                 .toJobParameters();
 
             jobLauncher.run(deleteOldNotificationsJob, params);
+        } catch (JobInstanceAlreadyCompleteException e) {
+            log.warn("오늘 배치는 이미 실행되었습니다: {}", e.getMessage());
         } catch (Exception e) {
             log.error("배치 작업 실행 실패", e);
             throw new NotificationBatchRunException("알림 삭제 배치 실행 실패", e);
