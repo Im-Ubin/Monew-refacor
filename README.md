@@ -174,7 +174,7 @@
 <br/>
 
 ## **프로젝트 아키텍처**
-<img width="846" height="595" alt="스크린샷 2025-11-22 153917" src="https://github.com/user-attachments/assets/a83d3c31-fde3-40b2-a268-d5d2bdcea4b9" />
+<img width="706" height="355" alt="스크린샷 2025-11-22 153917" src="https://github.com/user-attachments/assets/a83d3c31-fde3-40b2-a268-d5d2bdcea4b9" />
 
 
 
