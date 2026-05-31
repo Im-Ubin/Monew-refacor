@@ -68,7 +68,7 @@
 ## **팀원별 구현 기능 상세**
 
 ### 김민준
-<img src="img_2.png" width="650" />
+<img src="docs/images/img_2.png" width="650" />
 
 **댓글 관리**
 
@@ -92,7 +92,7 @@
 <br/>
 
 ### 김유빈
-<img src="img_3.png" width="300" />
+<img src="docs/images/img_3.png" width="300" />
 
 **알림 관리**
 - 알림 등록
@@ -114,7 +114,7 @@
 <br/>
 
 ### 백은호
-<img src="img_4.png" width="600" />
+<img src="docs/images/img_4.png" width="600" />
 
 **사용자 정보 관리**
 - 회원 가입/로그인
@@ -137,8 +137,8 @@
 <br/>
 
 ### 이건민
-<img src="img.png" width="600" />
-<img src="img_1.png" width="600" />
+<img src="docs/images/img.png" width="600" />
+<img src="docs/images/img_1.png" width="600" />
 
 **뉴스 기사 관리**
 - 뉴스 기사 수집
@@ -156,8 +156,8 @@
 <br/>
 
 ### **임정현**
-<img src="img_6.png" width="600" />
-<img src="img_7.png" width="350" />
+<img src="docs/images/img_6.png" width="600" />
+<img src="docs/images/img_7.png" width="350" />
 
 **관심사 관리**
 - 뉴스 기사 수집 기반이 되는 관심사와 그에 속한 키워드 CRUD 로직 구현
