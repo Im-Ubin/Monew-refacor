@@ -24,7 +24,7 @@ spring:
         default_schema: monewping
   batch:
     jdbc:
-      initialize-schema: embedded
+      initialize-schema: never
 
 management:
   endpoints:

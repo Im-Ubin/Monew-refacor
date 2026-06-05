@@ -1,6 +1,7 @@
 package org.project.monewping.domain.notification.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, UUID>, NotificationRepositoryCustom {
@@ -122,7 +124,14 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     long countByUserIdAndConfirmedFalse(UUID userId);
 
-    @Modifying
-    @Query("DELETE FROM Notification n WHERE n.id IN :ids")
-    void deleteByIdIn(@Param("ids") List<UUID> ids);
+    @Transactional
+    @Modifying(
+        flushAutomatically = true,
+        clearAutomatically = true
+    )
+    @Query("""
+        DELETE FROM Notification n
+        WHERE n.id IN :ids
+    """)
+    void deleteByIdIn(@Param("ids") Collection<UUID> ids);
 }

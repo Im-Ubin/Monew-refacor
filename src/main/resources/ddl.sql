@@ -185,3 +185,6 @@ CREATE TABLE notifications
     CONSTRAINT chk_notification_resource_type
         CHECK (resource_type IN ('Article', 'Comment'))
 );
+
+CREATE INDEX idx_notifications_updated_at
+    ON notifications(updated_at);

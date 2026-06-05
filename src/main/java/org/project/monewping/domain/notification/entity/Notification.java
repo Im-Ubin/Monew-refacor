@@ -2,6 +2,7 @@ package org.project.monewping.domain.notification.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -11,7 +12,12 @@ import lombok.experimental.SuperBuilder;
 import org.project.monewping.global.base.BaseUpdatableEntity;
 
 @Entity
-@Table(name = "notifications")
+@Table(
+    name = "notifications",
+    indexes = {
+        @Index(name = "idx_notifications_updated_at", columnList = "updated_at")
+    }
+)
 @SuperBuilder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

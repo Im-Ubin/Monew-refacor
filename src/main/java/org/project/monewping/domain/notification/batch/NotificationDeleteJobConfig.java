@@ -2,25 +2,25 @@ package org.project.monewping.domain.notification.batch;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.project.monewping.domain.notification.entity.Notification;
 import org.project.monewping.domain.notification.repository.NotificationRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
@@ -32,6 +32,7 @@ public class NotificationDeleteJobConfig {
     private final PlatformTransactionManager transactionManager;
     private final NotificationRepository notificationRepository;
     private final NotificationJobExecutionListener jobExecutionListener;
+    private final DataSource dataSource;
 
     @Bean(name = "배치 작업 정의")
     public Job deleteOldNotificationsJob() {
@@ -44,48 +45,45 @@ public class NotificationDeleteJobConfig {
     @Bean(name = "하나의 단위 작업 정의 (알림 조회 -> 삭제)")
     public Step deleteOldNotificationsStep() {
         return new StepBuilder("deleteOldNotificationsStep", jobRepository)
-            .<Notification, Notification>chunk(100, transactionManager)
+            .<UUID, UUID>chunk(100, transactionManager)
             .reader(notificationReader())
-            .processor(loggingProcessor())
             .writer(notificationWriter())
             .faultTolerant()
-            .retry(Exception.class)
+            .retry(TransientDataAccessException.class)
             .retryLimit(3)
-            .skip(Exception.class)
+            .skip(DataIntegrityViolationException.class)
             .skipLimit(10)
+            .noSkip(RuntimeException.class)
             .build();
     }
 
     @Bean(name = "삭제할 알림 조회")
-    public ItemReader<Notification> notificationReader() {
+    public ItemReader<UUID> notificationReader() {
         Instant oneWeekAgo = Instant.now().minus(7, ChronoUnit.DAYS);
 
-        return new RepositoryItemReaderBuilder<Notification>()
-            .name("notificationReader")
-            .repository(notificationRepository)
-            .methodName("findAllByConfirmedIsTrueAndUpdatedAtBefore")
-            .arguments(List.of(oneWeekAgo))
-            .pageSize(100)
-            .sorts(Map.of("id", Sort.Direction.ASC))
+        return new JdbcCursorItemReaderBuilder<UUID>()
+            .name("notificationCursorReader")
+            .dataSource(dataSource)
+            .sql("""
+                SELECT id
+                FROM notifications
+                WHERE confirmed = true
+                  AND updated_at < ?
+            """)
+            .preparedStatementSetter(ps -> ps.setObject(1, oneWeekAgo))
+            .rowMapper((rs, rowNum) ->
+                rs.getObject("id", UUID.class)
+            )
             .build();
     }
 
-    @Bean(name = "로그 출력")
-    public ItemProcessor<Notification, Notification> loggingProcessor() {
-        return item -> {
-            log.info("삭제 알림의 ID: {}", item.getId());
-            return item;
-        };
-    }
-
-    @Bean(name = "알림 삭제")
-    public ItemWriter<Notification> notificationWriter() {
+    @Bean
+    public ItemWriter<UUID> notificationWriter() {
         return items -> {
-            List<UUID> ids = items.getItems().stream()
-                .map(Notification::getId)
-                .toList();
+            List<UUID> ids = new ArrayList<>(items.getItems());
 
             notificationRepository.deleteByIdIn(ids);
+
             log.info("알림 {}건 삭제 완료", ids.size());
         };
     }
