@@ -20,7 +20,7 @@ public class NotificationBatchController {
     private final Job deleteOldNotificationsJob;
 
     /**
-     * 수동으로 알림 삭제 배치 작업을 실행하는 API 엔드포인트입니다.
+     * 수동으로 알림 삭제 배치 작업을 실행하는 API 엔드포인트입니다. (중복 실행 허용)
      *
      * @throws NotificationBatchRunException 배치 작업 실행 중 예외 발생 시
      */
